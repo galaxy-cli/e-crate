@@ -1,0 +1,16 @@
+#!/bin/bash
+read -p "URL: " yt
+read -p "Sanple name: " sample
+
+E-CRATE="E-Crate"
+
+if [ ! -d "$E-CRATE" ]; then
+    echo "Creating directory $E-CRATE..."
+    mkdir -p "~/Downloads/$E-CRATE"
+else
+    echo "Directory $E-CRATE already exists."
+fi
+
+if [[ $sample =~ ^[a-zA-Z0-9_-] ]]; then
+	curl -o > "$sample.mp3" "$yt"
+fi
