@@ -1,16 +1,33 @@
-#!/bin/bash
-read -p "URL: " yt
-read -p "Sanple name: " sample
+#!/bin/bash 	                   _       
+#	  ___        ___ _ __ __ _| |_ ___ 
+#	 / _ \_____ / __| '__/ _` | __/ _ \
+#	|  __/_____| (__| | | (_| | ||  __/
+#	 \___|      \___|_|  \__,_|\__\___|
+# Author: galaxy-cli
+# Project: https://github.com/galaxy-cli/e-crate
+# E-Crate is a simple Bash utility for downloading audio samples
 
-E-CRATE="E-Crate"
+read -p "URL: " url
+read -p "Sample name: " sample
 
-if [ ! -d "$E-CRATE" ]; then
-    echo "Creating directory $E-CRATE..."
-    mkdir -p "~/Downloads/$E-CRATE"
-else
-    echo "Directory $E-CRATE already exists."
+# Validate sample name: only allow letters, numbers, underscores, hyphens
+if [[ ! "$sample" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    echo "Invalid sample name. Use only letters, numbers, underscores, or hyphens."
+    exit 1
 fi
 
-if [[ $sample =~ ^[a-zA-Z0-9_-] ]]; then
-	curl -o > "$sample.mp3" "$yt"
+# Validate URL: must start with http:// or https://
+if [[ ! "$url" =~ ^https?:// ]]; then
+    echo "Invalid URL. Must start with http:// or https://"
+    exit 1
 fi
+
+# Check if URL is reachable (optional but recommended)
+if ! curl --output /dev/null --silent --head --fail "$url"; then
+    echo "URL does not appear to be reachable."
+    exit 1
+fi
+
+# Download the file
+curl -o "$sample.mp3" "$url"
+echo "Downloaded as $sample.mp3"
