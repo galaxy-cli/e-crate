@@ -1,5 +1,5 @@
-#!/bin/bash 	                   _       
-#	  ___        ___ _ __ __ _| |_ ___ 
+#!/bin/bash
+#	  ___        ___ _ __ __ _| |_ ___
 #	 / _ \_____ / __| '__/ _` | __/ _ \
 #	|  __/_____| (__| | | (_| | ||  __/
 #	 \___|      \___|_|  \__,_|\__\___|
@@ -7,27 +7,71 @@
 # Project: https://github.com/galaxy-cli/e-crate
 # E-Crate is a simple Bash utility for downloading audio samples
 
-read -p "URL: " url
-read -p "Sample name: " sample
+# If two arguments provided, use them as URL and sample name; else prompt the user
+if [[ $# -eq 2 ]]; then
+  url=$1
+  sample=$2
+else
+  read -rp "URL: " url
+  read -rp "Sample name: " sample
+fi
 
-# Validate sample name: only allow letters, numbers, underscores, hyphens
+# Validate sample name: only letters, numbers, underscores, or hyphens allowed
 if [[ ! "$sample" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "Invalid sample name. Use only letters, numbers, underscores, or hyphens."
-    exit 1
+  echo "Invalid sample name. Use only letters, numbers, underscores, or hyphens."
+  exit 1
 fi
 
-# Validate URL: must start with http:// or https://
+# Validate URL format: must start with http:// or https://
 if [[ ! "$url" =~ ^https?:// ]]; then
-    echo "Invalid URL. Must start with http:// or https://"
-    exit 1
+  echo "Invalid URL. Must start with http:// or https://"
+  exit 1
 fi
 
-# Check if URL is reachable (optional but recommended)
+# Check if URL is reachable by sending a HEAD request
 if ! curl --output /dev/null --silent --head --fail "$url"; then
-    echo "URL does not appear to be reachable."
-    exit 1
+  echo "URL does not appear to be reachable."
+  exit 1
 fi
 
-# Download the file
-curl -o "$sample.mp3" "$url"
-echo "Downloaded as $sample.mp3"
+# Extract file extension from URL
+ext="${url##*.}"
+# Check if extension is a common audio format, else default to mp3
+case "$ext" in
+  mp3|wav|flac|ogg) ;;
+  *) ext="mp3" ;;
+esac
+outfile="${sample}.${ext}"
+
+# Check if output file already exists to avoid accidental overwrite
+if [[ -f "$outfile" ]]; then
+  read -rp "File $outfile exists. Overwrite? (y/n) " ans
+  case "$ans" in
+    y|Y) ;;
+    *)
+      echo "Cancelled."
+      exit 0
+      ;;
+  esac
+fi
+
+# Download the file with a progress bar
+echo "Downloading $url ..."
+if curl --fail --location --progress-bar --output "$outfile" "$url"; then
+  echo "Downloaded as $outfile"
+else
+  echo "Download failed."
+  exit 1
+fi
+
+# Check if ffmpeg is installed before asking about conversion
+if command -v ffmpeg &> /dev/null; then
+  # Prompt user to optionally convert the downloaded file to WAV
+  read -rp "Convert downloaded file to WAV? (requires ffmpeg) (y/n) " convert
+  if [[ "$convert" =~ ^[Yy] ]]; then
+    ffmpeg -i "$outfile" "${sample}.wav"
+    echo "Converted to ${sample}.wav"
+  fi
+else
+  echo "Note: ffmpeg not found; skipping conversion."
+fi
