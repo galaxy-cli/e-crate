@@ -1,11 +1,12 @@
 #!/bin/bash
-#	  ___        ___ _ __ __ _| |_ ___
-#	 / _ \_____ / __| '__/ _` | __/ _ \
-#	|  __/_____| (__| | | (_| | ||  __/
-#	 \___|      \___|_|  \__,_|\__\___|
+#	  ___        __| (_) __ _
+#	 / _ \_____ / _` | |/ _` |
+#	|  __/_____| (_| | | (_| |
+#	 \___|      \__,_|_|\__, |
+#	                    |___/
 # Author: galaxy-cli
-# Project: https://github.com/galaxy-cli/e-crate
-# E-Crate is a simple Bash utility for downloading audio samples
+# Project: https://github.com/galaxy-cli/e-dig
+# e-dig is a simple Bash utility for downloading audio samples
 
 # If two arguments provided, use them as URL and sample name; else prompt the user
 if [[ $# -eq 2 ]]; then
