@@ -1,78 +1,142 @@
 #!/bin/bash
-#	  ___        __| (_) __ _
-#	 / _ \_____ / _` | |/ _` |
-#	|  __/_____| (_| | | (_| |
-#	 \___|      \__,_|_|\__, |
-#	                    |___/
+#   ___        __| (_) __ _
+#  / _ \_____ / _` | |/ _` |
+# |  __/_____| (_| | | (_| |
+#  \___|      \__,_|_|\__, |
+#                     |___/
 # Author: galaxy-cli
 # Project: https://github.com/galaxy-cli/e-dig
 # e-dig is a simple Bash utility for downloading audio samples
 
-# If two arguments provided, use them as URL and sample name; else prompt the user
-if [[ $# -eq 2 ]]; then
-  url=$1
-  sample=$2
-else
-  read -rp "URL: " url
-  read -rp "Sample name: " sample
+# Function: print usage info
+print_usage() {
+    cat <<EOF
+USAGE
+  e-dig -u                  Update or install yt-dlp to latest version
+  e-dig -d LINK1 [LINK2...] Download YouTube audio as MP3 from one or more URLs
+OPTIONS
+  -u    Update yt-dlp to the latest version (install if missing)
+  -d    Download audio from one or more YouTube URLs
+  -h    Show this help message
+EOF
+}
+
+
+# Function: Install yt-dlp if missing
+install_yt_dlp() {
+    echo "yt-dlp not found. Installing..."
+    sudo apt update
+    # Try install package first
+    if sudo apt install -y yt-dlp; then
+        echo "yt-dlp installed via apt."
+        return 0
+    else
+        # If apt install failed, fallback to downloading latest binary
+        echo "apt install failed or yt-dlp package not found. Downloading latest binary..."
+        sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/bin/yt-dlp
+        sudo chmod a+rx /usr/bin/yt-dlp
+        if command -v yt-dlp >/dev/null 2>&1; then
+            echo "yt-dlp installed successfully."
+            return 0
+        else
+            echo "Failed to install yt-dlp."
+            return 1
+        fi
+    fi
+}
+
+
+# Function: Update yt-dlp (assumes installed)
+update_yt_dlp() {
+    echo "Updating yt-dlp to latest version..."
+    # Use yt-dlp's built-in update command if available
+    if yt-dlp -U; then
+        echo "yt-dlp updated successfully."
+        return 0
+    else
+        echo "yt-dlp update command failed. Attempting manual download..."
+        sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/bin/yt-dlp
+        sudo chmod a+rx /usr/bin/yt-dlp
+        # Verify installation
+        if command -v yt-dlp >/dev/null 2>&1; then
+            echo "yt-dlp updated via manual download."
+            return 0
+        else
+            echo "Failed to update yt-dlp."
+            return 1
+        fi
+    fi
+}
+
+
+# Parse options and arguments
+
+if [[ $# -eq 0 ]]; then
+    print_usage
+    exit 1
 fi
 
-# Validate sample name: only letters, numbers, underscores, or hyphens allowed
-if [[ ! "$sample" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-  echo "Invalid sample name. Use only letters, numbers, underscores, or hyphens."
-  exit 1
+DOWNLOAD_URLS=()
+UPDATE_FLAG=false
+SHOW_HELP=false
+
+# We'll manually parse because getopts only takes single-argument options
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -u)
+            UPDATE_FLAG=true
+            shift
+            ;;
+        -d)
+            shift
+            # Collect all remaining args as URLs until an option or no more args
+            while [[ $# -gt 0 && ! "$1" =~ ^- ]]; do
+                DOWNLOAD_URLS+=("$1")
+                shift
+            done
+            ;;
+        -h)
+            SHOW_HELP=true
+            shift
+            ;;
+        *)
+            echo "Invalid option or argument: $1"
+            print_usage
+            exit 1
+            ;;
+    esac
+done
+
+if $SHOW_HELP; then
+    print_usage
+    exit 0
 fi
 
-# Validate URL format: must start with http:// or https://
-if [[ ! "$url" =~ ^https?:// ]]; then
-  echo "Invalid URL. Must start with http:// or https://"
-  exit 1
+if $UPDATE_FLAG; then
+    if ! command -v yt-dlp >/dev/null 2>&1; then
+        install_yt_dlp || exit 1
+    else
+        update_yt_dlp || exit 1
+    fi
+    exit 0
 fi
 
-# Check if URL is reachable by sending a HEAD request
-if ! curl --output /dev/null --silent --head --fail "$url"; then
-  echo "URL does not appear to be reachable."
-  exit 1
+if [[ ${#DOWNLOAD_URLS[@]} -eq 0 ]]; then
+    echo "Error: No URLs provided for download."
+    print_usage
+    exit 1
 fi
 
-# Extract file extension from URL
-ext="${url##*.}"
-# Check if extension is a common audio format, else default to mp3
-case "$ext" in
-  mp3|wav|flac|ogg) ;;
-  *) ext="mp3" ;;
-esac
-outfile="${sample}.${ext}"
-
-# Check if output file already exists to avoid accidental overwrite
-if [[ -f "$outfile" ]]; then
-  read -rp "File $outfile exists. Overwrite? (y/n) " ans
-  case "$ans" in
-    y|Y) ;;
-    *)
-      echo "Cancelled."
-      exit 0
-      ;;
-  esac
+if ! command -v yt-dlp >/dev/null 2>&1; then
+    echo "yt-dlp is not installed. Attempting to install first."
+    install_yt_dlp || exit 1
 fi
 
-# Download the file with a progress bar
-echo "Downloading $url ..."
-if curl --fail --location --progress-bar --output "$outfile" "$url"; then
-  echo "Downloaded as $outfile"
-else
-  echo "Download failed."
-  exit 1
-fi
-
-# Check if ffmpeg is installed before asking about conversion
-if command -v ffmpeg &> /dev/null; then
-  # Prompt user to optionally convert the downloaded file to WAV
-  read -rp "Convert downloaded file to WAV? (requires ffmpeg) (y/n) " convert
-  if [[ "$convert" =~ ^[Yy] ]]; then
-    ffmpeg -i "$outfile" "${sample}.wav"
-    echo "Converted to ${sample}.wav"
-  fi
-else
-  echo "Note: ffmpeg not found; skipping conversion."
-fi
+for url in "${DOWNLOAD_URLS[@]}"; do
+    echo "Downloading audio from $url as MP3..."
+    yt-dlp -x --audio-format mp3 "$url"
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to download from $url"
+    fi
+done

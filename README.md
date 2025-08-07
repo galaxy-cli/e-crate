@@ -2,94 +2,83 @@
 
 A simple Bash utility for downloading audio samples from URLs, with optional conversion to WAV format.
 
----
-
 ## Overview
 
-`e-dig` is a lightweight and straightforward Bash script designed to quickly download audio samples from a given URL and save them locally with a user-defined name. It supports common audio formats and optionally converts downloaded files to WAV using `ffmpeg` if available.
+`e-dig` is a lightweight, easy-to-use Bash script designed to quickly download audio samples from one or more URLs and save them locally with user-defined names or default naming based on URLs.
 
-This script was originally created as a personal tool to streamline managing audio samples but is shared here for anyone looking for a simple downloader with built-in validation and conversion capabilities.
+Originally created as a personal tool for managing audio samples efficiently, e-dig is now shared to help anyone who needs a straightforward downloader with integrated progress display, URL validation, and conversion features.
 
 ---
 
 ## Features
 
-- Supports downloading from HTTP and HTTPS URLs.
+- Supports downloading audio from multiple HTTP or HTTPS URLs in a single command.
+- Automatically installs or updates yt-dlp (YouTube downloader) to the latest version with a simple command.
 - Validates sample names to avoid invalid filesystem characters.
-- Checks URL reachability before attempting to download.
-- Automatically detects common audio file extensions (`mp3`, `wav`, `flac`, `ogg`), defaulting to `.mp3` if unclear.
-- Prevents accidental overwriting by prompting before overwriting existing files.
-- Displays a progress bar during download.
-- Optional conversion of downloaded audio to WAV format if `ffmpeg` is installed.
-- Simple, interactive prompts fallback when arguments are not supplied.
+- Checks URL reachability before downloading.
+- Detects common audio file extensions (`mp3`, `wav`, `flac`, `ogg`) and uses `.mp3` as a default when unclear.
+- Prevents accidental file overwrites by prompting confirmation.
+- Displays a progress bar during downloads.
+- Interactive prompts for URL(s) and sample names if not supplied as command line arguments.
+- Clear error messages for invalid URLs, network failures, or invalid inputs.
+- Supports batch downloads by allowing multiple URLs after the -d option.
 
 ---
 
 ## Requirements
 
 - Bash shell
-- `curl` installed and available in the system PATH
-- Optional: `ffmpeg` for audio format conversion
+- curl installed and available in your system PATH
+- yt-dlp (the script can install or update it automatically)
+
+Installation and Updating yt-dlp
+Use the -u flag with e-dig to install or update yt-dlp to the latest version automatically.
+
+This process tries to install via your package manager (apt) first, and falls back to downloading the latest binary directly from GitHub if needed.
 
 ---
 
 ## Usage
 
-You can run `e-dig` in two ways:
+### 1. Update or install yt-dlp
+```./e-dig -u```
+This ensures that yt-dlp is available and up-to-date to handle YouTube downloads.
 
-### 1. With URL and sample name as arguments
+### 2. Download one or more audio files
+```./e-dig -d [URL1] [URL2] [URL3] ...```
+#### Example:
 
-`./e-dig.sh <audio_file_url> <sample_name>`
+```./e-dig -d https://youtu.be/abc123 https://youtu.be/def456```
+This downloads audio from each given URL sequentially, extracting in MP3 format by default.
 
-Example:
+### 3. Interactive mode
+Run the script without arguments to be prompted for URLs and sample names.
 
-`./e-dig.sh https://example.com/sounds/snare.wav snare_sample`
+### 4. Download with custom sample names and format validation
+The script supports safe sample names containing only letters, numbers, underscores _, and hyphens -.
 
-### 2. Interactive prompt (no arguments)
+Before downloading, it verifies each URL’s reachability and extension.
 
-Simply run:
-
-`./e-dig.sh`
-
-The script will prompt you to enter the URL and sample name.
+Prevents overwriting files by asking before saving.
 
 ---
 
 ## Sample Name Requirements
 
-- Only letters (a-z, A-Z), numbers (0-9), underscores `_`, and hyphens `-` are allowed.
-- This ensures safe file names across different filesystems.
+Allowed characters: letters (a-z, A-Z), numbers (0-9), underscores _, and hyphens -.
 
----
+Ensures generated file names are filesystem-safe across platforms.
 
-## Download Behavior
-
-- The script validates the URL format (`http://` or `https://`).
-- It sends a HEAD request to verify the URL is reachable before downloading.
-- Supports `.mp3`, `.wav`, `.flac`, `.ogg` extensions; defaults to `.mp3` if none matches.
-- Prevents overwriting existing files by prompting the user for confirmation.
-- Shows a progress bar during the download.
-
----
-
-## Optional WAV Conversion
-
-- If `ffmpeg` is installed, after downloading, you'll be prompted whether to convert the file to WAV format.
-- Conversion happens in-place and creates a `.wav` version with the same sample name.
-
----
-
-## Error Handling
-
-- Invalid URLs, unreachable links, or invalid sample names cause the script to exit with an error message.
-- Download failures are clearly reported.
-
----
+### Error Handling
+- Invalid or unreachable URLs produce clear error messages.
+- Network failures or permission issues during download report descriptive feedback.
+- Sample name format errors abort the process to avoid issues.
 
 ## Customization
 
-- You can customize or extend this script easily to support other audio formats or post-processing steps.
-- Suitable as a quick tool to automate sample downloads for music production or sound design projects.
+Easily extend the script to support additional audio formats or custom post-processing steps.
+
+Can be adapted for various use cases in sound design, music production, or media archiving.
 
 ---
 
